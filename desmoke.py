@@ -326,7 +326,7 @@ def install_task(filename):
         "command": "bash",
         "args": [
             "-c",
-            "source python3-venv/bin/activate && ./buildscripts/resmoke.py run ${relativeFile} | desmoke.py --filetype resmoke",
+            "source python3-venv/bin/activate && ./buildscripts/resmoke.py run ${relativeFile} | desmoke.py --filetype js",
         ],
         "group": {"kind": "test", "isDefault": True},
         "presentation": {"focus": True, "clear": True},
@@ -350,7 +350,7 @@ def install_task(filename):
         "command": "bash",
         "args": [
             "-c",
-            "source python3-venv/bin/activate && ninja -j400 +${fileBasenameNoExtension} | desmoke.py --filetype cppunit",
+            "source python3-venv/bin/activate && ninja -j400 +${fileBasenameNoExtension} | desmoke.py --filetype cpp",
         ],
         "group": "test",
         "presentation": {"focus": True, "clear": True},
@@ -426,7 +426,7 @@ UNITTEST_ERROR_PATTERN = re.compile(r"^(.*)\s+@([\w\.\/]+):(\d+)$")
 
 def process_unittest(file, pass_through):
     """
-    Luckily, each line in C++ unit test output is a JSON file, so parsing
+    Luckily, each line in C++ unit test output is a JSON object, so parsing
     is much easier! Still need to do some string manipulation to get it in an unambiguous format
     for desmoke to output.
     """
@@ -454,7 +454,7 @@ def setup_parser():
     parser.add_argument(
         "filename",
         nargs="?",
-        help="File to use as input. If not provided, desmoke.py will read from stdin.",
+        help="File to use as input. If not provided, desmoke.py will read from stdin. In install mode, this file is used as output.",
     )
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
@@ -469,13 +469,13 @@ def setup_parser():
     )
     parser.add_argument(
         "--filetype",
-        choices=["resmoke", "cppunit"],
+        choices=["js", "cpp"],
         help="Force a certain log parser. By default, desmoke.py will make a best guess based on the first log line.",
     )
     parser.add_argument(
         "--install",
         action="store_true",
-        help="Adds tasks to vscode's tasks.json to enable VSCode integration.",
+        help="Adds tasks to vscode's tasks.json to enable VSCode integration. Defaults to .vscode/tasks.json if no filename is provided.",
     )
     return parser
 
@@ -500,13 +500,13 @@ def main():
     if mode is None:
         first_line = file.readline()
         if first_line.startswith("[resmoke]"):
-            mode = "resmoke"
+            mode = "js"
         else:
-            mode = "cppunit"
+            mode = "cpp"
 
-    if mode == "resmoke":
+    if mode == "js":
         assertions = process_resmoke(file, pass_through)
-    elif mode == "cppunit":
+    elif mode == "cpp":
         assertions = process_unittest(file, pass_through)
     else:
         argparser.print_help()
