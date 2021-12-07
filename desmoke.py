@@ -321,7 +321,7 @@ def install_task(filename):
         filename = ".vscode/tasks.json"
 
     jstest_task = {
-        "label": "Run file as jstest",
+        "label": "Desmoke: Run file as jstest",
         "type": "shell",
         "command": "bash",
         "args": [
@@ -345,7 +345,7 @@ def install_task(filename):
     }
 
     cppunit_task = {
-        "label": "Run file as C++ unit test",
+        "label": "Desmoke: Run file as C++ unit test",
         "type": "shell",
         "command": "bash",
         "args": [
@@ -376,7 +376,22 @@ def install_task(filename):
             return
         tasks = {"version": "2.0.0", "cwd": "${workspaceFolder}"}
 
-    tasks.setdefault("tasks", []).append(jstest_task)
+    tasks.setdefault("tasks", [])
+    without_desmoke_tasks = [
+        t for t in tasks["tasks"] if not t["label"].startswith("Desmoke:")
+    ]
+
+    if len(tasks["tasks"]) > len(without_desmoke_tasks):
+        answer = input(
+            f"desmoke --install has been run previously for {filename}. Should desmoke:\n[0] replace generated tasks\n[1] append new tasks\n[2] exit\nResponse: "
+        )
+        if answer == "0":
+            tasks["tasks"] = without_desmoke_tasks
+        elif answer != "1":
+            print("Goodbye!")
+            return
+
+    tasks["tasks"].append(jstest_task)
     tasks["tasks"].append(cppunit_task)
 
     with open(filename, "w") as file:
