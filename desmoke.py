@@ -326,7 +326,8 @@ def install_task(filename):
         "command": "bash",
         "args": [
             "-c",
-            "source python3-venv/bin/activate && ./buildscripts/resmoke.py run ${relativeFile} | desmoke.py --filetype js",
+            "source python3-venv/bin/activate && ./buildscripts/resmoke.py run ${relativeFile} | "
+            + f"{__file__} --tool resmoke",
         ],
         "group": {"kind": "test", "isDefault": True},
         "presentation": {"focus": True, "clear": True},
@@ -350,7 +351,8 @@ def install_task(filename):
         "command": "bash",
         "args": [
             "-c",
-            "source python3-venv/bin/activate && ninja -j400 +${fileBasenameNoExtension} | desmoke.py --filetype cpp",
+            "source python3-venv/bin/activate && ninja -j400 +${fileBasenameNoExtension} | "
+            + f"{__file__} --tool scons",
         ],
         "group": "test",
         "presentation": {"focus": True, "clear": True},
@@ -383,7 +385,7 @@ def install_task(filename):
 
     if len(tasks["tasks"]) > len(without_desmoke_tasks):
         answer = input(
-            f"desmoke --install has been run previously for {filename}. Should desmoke:\n[0] replace generated tasks\n[1] append new tasks\n[2] exit\nResponse: "
+            f"desmoke --install has been run previously for {filename}. Should desmoke:\n[0] replace generated tasks\n[1] append new tasks\n[2] exit\n> "
         )
         if answer == "0":
             tasks["tasks"] = without_desmoke_tasks
@@ -421,15 +423,14 @@ def process_resmoke(file, pass_through):
     return assertions
 
 
-UNITTEST_ERROR_PATTERN = re.compile(r"^(.*)\s+@([\w\.\/]+):(\d+)$")
-
-
 def process_unittest(file, pass_through):
     """
     Luckily, each line in C++ unit test output is a JSON object, so parsing
     is much easier! Still need to do some string manipulation to get it in an unambiguous format
     for desmoke to output.
     """
+    UNITTEST_ERROR_PATTERN = re.compile(r"^(.*)\s+@([\w\.\/]+):(\d+)$")
+
     assertions = []
     while line := file.readline():
         if pass_through:
@@ -454,9 +455,10 @@ def setup_parser():
     parser.add_argument(
         "filename",
         nargs="?",
-        help="File to use as input. If not provided, desmoke.py will read from stdin. In install mode, this file is used as output.",
+        help="Target file. In log-parsing mode, used as input if provided, defaults to stdin. In install mode, used as output for tasks.json. Defaults to ./.vscode/tasks.json.",
     )
-    group = parser.add_mutually_exclusive_group()
+    main_group = parser.add_argument_group("Process Test Log")
+    group = main_group.add_mutually_exclusive_group()
     group.add_argument(
         "--summary",
         action="store_true",
@@ -467,12 +469,14 @@ def setup_parser():
         action="store_true",
         help="Only send desmoke.py output to stdout without forwarding the input file or stream.",
     )
-    parser.add_argument(
-        "--filetype",
-        choices=["js", "cpp"],
+    main_group.add_argument(
+        "--tool",
+        choices=["resmoke", "scons"],
         help="Force a certain log parser. By default, desmoke.py will make a best guess based on the first log line.",
     )
-    parser.add_argument(
+    install_group = parser.add_argument_group("Install Tasks for VSCode")
+
+    install_group.add_argument(
         "--install",
         action="store_true",
         help="Adds tasks to vscode's tasks.json to enable VSCode integration. Defaults to .vscode/tasks.json if no filename is provided.",
@@ -496,17 +500,17 @@ def main():
     summary = args.summary
 
     # Infer filetype from the first line of the file.
-    mode = args.filetype
+    mode = args.tool
     if mode is None:
         first_line = file.readline()
         if first_line.startswith("[resmoke]"):
-            mode = "js"
+            mode = "resmoke"
         else:
-            mode = "cpp"
+            mode = "scons"
 
-    if mode == "js":
+    if mode == "resmoke":
         assertions = process_resmoke(file, pass_through)
-    elif mode == "cpp":
+    elif mode == "scons":
         assertions = process_unittest(file, pass_through)
     else:
         argparser.print_help()
@@ -514,7 +518,7 @@ def main():
 
     if summary:
         print("----")
-        print("\n".join(assertions))
+        print("\n".join([str(a) for a in assertions]))
         print("----")
 
 
