@@ -1,21 +1,33 @@
 ## desmoke.py
-*Un-grepping the MongoDB maintainer experience*
 
 ### Summary
-The output from MongoDB's test harnesses can be quite tedious to read directly in the terminal without some `grep` magic or careful manual combing to locate specific errors and false assertions during development. Since JavaScript is a dynamic language, actual programming errors in jstests are intermixed with assertion failures, and it can be difficult to find out why a test is failing at-a-glance.
+The output from MongoDB's test harnesses can be quite tedious to read in order to locate specific errors and false assertions during development, even with some `grep` magic. JavaScript assertions in `resmoke.py` can be spread out over many lines and interspersed with output lines from spawned `mongod` and `mongos` processes, making it difficult if not impossible for a regular expression alone to parse properly. Since JavaScript is a dynamic language, actual programming errors in jstests are intermixed with assertion failures, and determining whether something is a mistake in the JS test code or an assertion failure is more difficult than it needs to be. C++ unit tests that are run through `ninja` and `scons.py` output long and verbose JSON objects from which important information is difficult to extract at a glance.  
 
-`desmoke.py` parses the output from the [integration test runner `resmoke.py`](https://github.com/mongodb/mongo/wiki/Test-The-Mongodb-Server#test-using-resmokepy), or the [unit test runner](https://github.com/mongodb/mongo/wiki/Test-The-Mongodb-Server#running-c-unit-tests), and can output more human-readable log lines.
+`desmoke.py` parses the output from the [integration test runner `resmoke.py`](https://github.com/mongodb/mongo/wiki/Test-The-Mongodb-Server#test-using-resmokepy), or the [unit test runner](https://github.com/mongodb/mongo/wiki/Test-The-Mongodb-Server#running-c-unit-tests), and can output more human-readable log lines resembling 
 
-Usage is easy, just pipe the test output into `desmoke.py`. By default, desmoke will output logs as it processes the file line-by-line, but you can optionally ask for a summary at the end of the output as well:
+Usage is easy, just pipe the test output into `desmoke.py`. By default, desmoke will prefix its output with `[desmoke]` as it processes the file line-by-line, but you can optionally ask for a summary at the end of the output as well:
 
 ```bash
 $ ./buildscripts/resmoke.py run [filename] | ./desmoke.py --summary
 $ ninja +<unit test name> | ./desmoke.py --summary
 ```
 
-`desmoke.py` can also read from a file to analyze past test runs:
+This works nicely with `grep`, too:
+```bash
+$ ./buildscripts/resmoke.py run [filename] | ./desmoke.py | grep "[desmoke]" 
+```
+
+
+To analyze past test runs, `desmoke.py` can read from a file:
 ```bash
 $ ./buildscripts/resmoke.py run [filename] > test_output.log && ./desmoke.py --summary test_output.log
+```
+
+### Installation
+`desmoke.py` is a single Python file. To grab the latest from GitHub, you can grab it with your browser, or use cURL. Assuming your home directory is in your PATH, you can pop it there. You can change the destination file to match your setup.
+
+```
+$ curl https://raw.githubusercontent.com/davish/desmoke/main/desmoke.py -o ~/desmoke.py
 ```
 
 ### VSCode Integration
@@ -29,3 +41,46 @@ $ ./desmoke.py --install
 ```
 
 To use the integration, open the Command Palette with the test file open and run `Tasks: Run Task` and select either `Desmoke: Run file as C++ unit test` or `Desmoke: Run file as jstest`.
+
+
+### Example
+Take this failing jstest:
+```javascript
+(function() {
+"use strict";
+let a = {"message": {"hello": "MongoDB World!", "timestamp": "abc123"}, "id": 1};
+let b = {"message": {"hello": "MongoDB Live!", "timestamp": "abc123"}, "id": 1};
+assert.eq(a, b, "Payloads should be equal.");
+})();
+```
+
+Running it through `desmoke.py` with the following invocation:
+```bash
+./buildscripts/resmoke.py run jstests/failing_test.js | ./desmoke.py --summary
+```
+
+Produces this at the end of its output:
+```
+...
+...
+[executor] 18:37:18.211Z Summary of latest execution: 3 test(s) ran in 2.91 seconds (2 succeeded, 0 were skipped, 1 failed, 0 errored)
+    The following tests failed (with exit code):
+        jstests/failures.js (253 Failure executing JS file)
+    If you're unsure where to begin investigating these errors, consider looking at tests in the following order:
+        jstests/failures.js
+[resmoke] 18:37:18.211Z ================================================================================
+[resmoke] 18:37:18.211Z Summary of with_server suite: 3 test(s) ran in 2.91 seconds (2 succeeded, 0 were skipped, 1 failed, 0 errored)
+The following tests failed (with exit code):
+    jstests/failures.js (253 Failure executing JS file)
+If you're unsure where to begin investigating these errors, consider looking at tests in the following order:
+    jstests/failures.js
+[resmoke] 18:37:18.211Z Exiting with code: 1
+----
+jstests/failures.js:6:1: error: assert equals failed:  Payloads should be equal. : [{"message": {"hello": "MongoDB World!", "timestamp": "abc123"}, "id": 1}] != [{"message": {"hello": "MongoDB Live!", "timestamp": "abc123"}, "id": 1}]
+Diff:
+Left:[{"message": {"hello": "MongoDB World!"}}]
+Right:[{"message": {"hello": "MongoDB Live!"}}]
+----
+```
+
+Here you can also see the custom parser for `assert.eq()` errors which outputs a diff along with the regular failure report.
