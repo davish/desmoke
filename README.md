@@ -34,7 +34,7 @@ If you want to modify a file that isn't `./.vscode/tasks.json`, you can specify 
 ### Help
 ```
 $ ./desmoke.py --help
-usage: desmoke.py [-h] [--summary | --only] [--filetype {resmoke,cppunit}] [--install] [filename]
+usage: desmoke.py [-h] [--summary | --only] [--filetype {js,cpp}] [--install] [filename]
 
 Prettify resmoke output.
 
