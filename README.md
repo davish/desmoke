@@ -24,7 +24,7 @@ $ ./buildscripts/resmoke.py run [filename] > test_output.log && ./desmoke.py --s
 ```
 
 ### Installation
-`desmoke.py` is a single Python file. To grab the latest from GitHub, you can grab it with your browser, or use cURL. Assuming your home directory is in your PATH, you can pop it there. You can change the destination file to match your setup.
+`desmoke.py` is a single Python file. It has no dependencies, and works with `python3-venv`, the virtual environment used with MongoDB development. for To grab the latest from GitHub, you can point your browser at it, or use cURL. Assuming your home directory is in your PATH, you can pop it there. You can change the destination file to match your setup.
 
 ```
 $ curl https://raw.githubusercontent.com/davish/desmoke/main/desmoke.py -o ~/desmoke.py
