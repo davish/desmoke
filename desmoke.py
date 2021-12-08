@@ -261,8 +261,8 @@ class StartState(BaseState):
 class AssertionState(BaseState):
     """
     Collect all lines that make up the assertion message.
-    the shell's tojson() method pretty-prints objects, and so many
-    log files take up multiple lines.
+    The shell's tojson() method pretty-prints objects, and so many
+    assertion messages take up multiple lines.
     """
 
     def __init__(self, first_line):
