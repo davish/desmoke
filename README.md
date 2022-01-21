@@ -28,6 +28,7 @@ $ ./buildscripts/resmoke.py run [filename] > test_output.log && ./desmoke.py --s
 
 ```
 $ curl https://raw.githubusercontent.com/davish/desmoke/main/desmoke.py -o ~/desmoke.py
+$ chmod +x ~/desmoke.py
 ```
 
 ### VSCode Integration

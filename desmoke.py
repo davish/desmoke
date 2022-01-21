@@ -171,8 +171,15 @@ class Inequality(Assertion):
 
     @classmethod
     def do_parse(cls, match, pos):
-        left = json.loads(match.group(1))
-        right = json.loads(match.group(2))
+        try:
+            left = json.loads(match.group(1))
+        except json.decoder.JSONDecodeError:
+            left = dict()
+        try:
+            right = json.loads(match.group(2))
+        except json.decoder.JSONDecodeError:
+            right = dict()
+            
         if match.group(3) is not None:
             try:
                 msg = json.loads(match.group(3)[1:])
@@ -520,6 +527,8 @@ def main():
         print("----")
         print("\n".join([str(a) for a in assertions]))
         print("----")
+
+    exit(0 if len(assertions) == 0 else 1)
 
 
 if __name__ == "__main__":
