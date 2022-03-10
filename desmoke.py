@@ -105,7 +105,7 @@ class Position:
             match = FILE_TRACE_PATTERN.match(trace)
             if match is None:
                 raise ValueError("string did not match traceback.")
-            if match.group(2).startswith("jstests"):
+            if match.group(2).startswith("jstests") or match.group(2).startswith("src/mongo/db/modules/enterprise/jstests"):
                 return cls(match.group(2), match.group(3), match.group(4))
         return None
 
