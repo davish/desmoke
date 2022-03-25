@@ -446,10 +446,14 @@ def process_unittest(file, pass_through):
             log = json.loads(line)
         except json.decoder.JSONDecodeError:
             continue
+        
+        # The JSON parser picks up valid JSON elements, so make sure we have a full object before parsing.
+        if not isinstance(log, dict):
+            continue
 
         # Look for log lines that represent test failures, then parse and reformat the error message.
-        if log["c"] == "TEST" and log["msg"] == "FAIL":
-            if match := UNITTEST_ERROR_PATTERN.match(log["attr"]["error"]):
+        if log.get("c") == "TEST" and log.get("msg") == "FAIL":
+            if match := UNITTEST_ERROR_PATTERN.match(log.get("attr", dict()).get("error", "")):
                 assertion = f"{match.group(2)}:{match.group(3)}: {match.group(1)}"
                 desmoke_print(assertion, pass_through)
                 assertions.append(assertion)
