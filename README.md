@@ -8,27 +8,28 @@ The output from MongoDB's test harnesses can be quite tedious to read in order t
 Usage is easy, just pipe the test output into `desmoke.py`. By default, desmoke will prefix its output with `[desmoke]` as it processes the file line-by-line, but you can optionally ask for a summary at the end of the output as well:
 
 ```bash
-$ ./buildscripts/resmoke.py run [filename] | ./desmoke.py --summary
-$ ninja +<unit test name> | ./desmoke.py --summary
+$ ./buildscripts/resmoke.py run [filename] | desmoke.py --summary
+$ ninja +<unit test name> | desmoke.py --summary
 ```
 
 This works nicely with `grep`, too:
 ```bash
-$ ./buildscripts/resmoke.py run [filename] | ./desmoke.py | grep "[desmoke]" 
+$ ./buildscripts/resmoke.py run [filename] | desmoke.py | grep "[desmoke]" 
 ```
 
 
 To analyze past test runs, `desmoke.py` can read from a file:
 ```bash
-$ ./buildscripts/resmoke.py run [filename] > test_output.log && ./desmoke.py --summary test_output.log
+$ ./buildscripts/resmoke.py run [filename] > test_output.log && desmoke.py --summary test_output.log
 ```
 
 ### Installation
-`desmoke.py` is a single Python file. It has no dependencies, and works with the virtual environment used with MongoDB development. for To grab the latest from GitHub, you can point your browser at it, or use cURL. Assuming your home directory is in your PATH, you can pop it there. You can change the destination file to match your setup.
+`desmoke.py` is a single Python file. It has no dependencies, and works with the virtual environment used with MongoDB development (Python 3.9). You can download the git repository to make sure that you can always `git pull` to get any updates:
 
 ```
-$ curl https://raw.githubusercontent.com/davish/desmoke/main/desmoke.py -o ~/desmoke.py
-$ chmod +x ~/desmoke.py
+$ git clone https://github.com/davish/desmoke.git
+$ export PATH="$(pwd)/desmoke:$PATH" # Add this line to your bash/zsh config to keep desmoke in your PATH
+$ chmod +x desmoke/desmoke.py
 ```
 
 ### VSCode Integration
@@ -38,8 +39,10 @@ Rather than leaving the regex mangling as an exercise for the reader, `desmoke.p
 to run both jstests and C++ unit tests with just one command run from the project root:
 
 ```bash
-$ ./desmoke.py --install
+$ desmoke.py --install
 ```
+
+> Note that VSCode's JSON parser is noticeably more permissive than the JSON Spec that Python's JSON parser follows quite closely. If you get a JSON parse error when running the installation command, check your `.vscode/tasks.json` file for any invalid JSON, like trailing commas, comments, or single quotes. 
 
 To use the integration, open the Command Palette with the test file open and run `Tasks: Run Task` and select either `Desmoke: Run file as C++ unit test` or `Desmoke: Run file as jstest`.
 
@@ -57,7 +60,7 @@ assert.eq(a, b, "Payloads should be equal.");
 
 Running it through `desmoke.py` with the following invocation:
 ```bash
-./buildscripts/resmoke.py run jstests/failing_test.js | ./desmoke.py --summary
+./buildscripts/resmoke.py run jstests/failing_test.js | desmoke.py --summary
 ```
 
 Produces this at the end of its output:
